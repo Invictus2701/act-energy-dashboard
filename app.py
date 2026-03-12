@@ -122,6 +122,52 @@ st.markdown(f"""
 
     /* ── Hide Streamlit defaults ── */
     #MainMenu, footer {{visibility: hidden;}}
+
+    /* ── Sidebar collapse/expand button ── */
+    [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapseButton"] button {{
+        background: {WHITE} !important;
+        border: 1px solid #E5E7EB !important;
+        border-radius: 8px !important;
+        width: 2rem !important;
+        height: 2rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+        cursor: pointer !important;
+    }}
+    [data-testid="collapsedControl"]:hover,
+    [data-testid="stSidebarCollapseButton"] button:hover {{
+        background: {GREY_BG} !important;
+        border-color: {TEAL} !important;
+    }}
+    /* Force-hide Material icon text fallback */
+    [data-testid="collapsedControl"] span[data-icon],
+    [data-testid="stSidebarCollapseButton"] span[data-icon],
+    header span.material-symbols-outlined,
+    header span.material-symbols-rounded,
+    [data-testid="collapsedControl"] span:not(:has(> svg)),
+    [data-testid="stSidebarCollapseButton"] span:not(:has(> svg)) {{
+        font-size: 0 !important;
+        letter-spacing: -9999px !important;
+        color: transparent !important;
+        overflow: hidden !important;
+        max-width: 1.2rem !important;
+        max-height: 1.2rem !important;
+    }}
+    /* But keep SVG icons visible */
+    [data-testid="collapsedControl"] svg,
+    [data-testid="stSidebarCollapseButton"] svg {{
+        width: 1rem !important;
+        height: 1rem !important;
+        color: {NAVY} !important;
+    }}
+    /* Hide stale header decoration text */
+    header[data-testid="stHeader"] {{
+        background: transparent !important;
+        border: none !important;
+    }}
     .block-container {{
         padding-top: 2rem;
         padding-bottom: 2rem;
@@ -196,7 +242,7 @@ with st.sidebar:
 
     page = st.radio(
         "Navigation",
-        ["Vue d'ensemble", "Segmentation", "Groupes", "Sociétés", "Qualité des données"],
+        ["Vue d'ensemble", "Segmentation", "Groupes", "Sociétés"],
         label_visibility="collapsed",
     )
 
@@ -243,7 +289,8 @@ def chart_layout(fig, h=380):
         height=h,
         legend=dict(
             orientation="h", yanchor="bottom", y=1.02,
-            xanchor="right", x=1, font=dict(size=11)
+            xanchor="right", x=1, font=dict(size=11),
+            title_text="",
         ),
     )
     fig.update_xaxes(showgrid=False, zeroline=False)
@@ -631,95 +678,3 @@ elif page == "Sociétés":
     st.plotly_chart(fig, use_container_width=True)
 
 
-# ═══════════════════════════════════════════════
-# PAGE: QUALITÉ DES DONNÉES
-# ═══════════════════════════════════════════════
-elif page == "Qualité des données":
-    st.markdown('<div class="page-header">Data Quality</div>', unsafe_allow_html=True)
-    st.markdown('<div class="page-title">Qualité des données</div>', unsafe_allow_html=True)
-
-    total = len(df_all)
-    nb_ano = len(df_ano)
-    nb_conso_zero = (df_all["site_consommation_annuelle"] == 0).sum()
-    nb_nom_null = df_all["site_nom"].isnull().sum()
-    nb_fuz = len(df_fuz)
-
-    c1, c2, c3, c4 = st.columns(4)
-    c1.markdown(kpi_card("Anomalies", f"{nb_ano:,}", f"{nb_ano/total*100:.1f}% du portefeuille"), unsafe_allow_html=True)
-    c2.markdown(kpi_card("Conso = 0", f"{nb_conso_zero:,}", f"{nb_conso_zero/total*100:.1f}%", "kpi-gold"), unsafe_allow_html=True)
-    c3.markdown(kpi_card("Nom manquant", f"{nb_nom_null:,}", f"{nb_nom_null/total*100:.1f}%", "kpi-green"), unsafe_allow_html=True)
-    if nb_fuz > 0:
-        fuz_high = df_fuz[df_fuz.Confiance=='high'].shape[0]
-        fuz_med  = df_fuz[df_fuz.Confiance=='medium'].shape[0]
-        c4.markdown(kpi_card("Corrections fuzzy", f"{nb_fuz}", f"{fuz_high} high · {fuz_med} medium", "kpi-navy"), unsafe_allow_html=True)
-    else:
-        c4.markdown(kpi_card("Corrections fuzzy", "—", "Onglet absent du fichier", "kpi-navy"), unsafe_allow_html=True)
-
-    st.markdown("")
-    col1, col2 = st.columns(2)
-
-    with col1:
-        section("Anomalies par type")
-        ano_type = df_ano["Type"].value_counts().reset_index()
-        ano_type.columns = ["Type", "Count"]
-        fig = px.bar(
-            ano_type, x="Count", y="Type", orientation="h",
-            color_discrete_sequence=[GOLD],
-            text="Count",
-        )
-        fig.update_traces(texttemplate="%{text:,.0f}", textposition="outside")
-        chart_layout(fig, 250)
-        fig.update_layout(xaxis_title="", yaxis_title="")
-        st.plotly_chart(fig, use_container_width=True)
-
-    with col2:
-        section("Corrections fuzzy — confiance")
-        if len(df_fuz) > 0:
-            fuz_conf = df_fuz.groupby(["Type","Confiance"]).agg(
-                corrections=("Nb EAN Affectés","sum")
-            ).reset_index()
-            fig = px.bar(
-                fuz_conf, x="Type", y="corrections", color="Confiance",
-                barmode="group",
-                color_discrete_map={"high": GREEN, "medium": GOLD},
-                text="corrections",
-            )
-            fig.update_traces(texttemplate="%{text:,.0f}", textposition="outside")
-            chart_layout(fig, 250)
-            fig.update_layout(xaxis_title="", yaxis_title="EAN affectés")
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("Aucun rapport de corrections fuzzy dans ce fichier.")
-
-    # ── Conso=0 par groupe ──
-    section("Taux de conso = 0 par groupe")
-    grp_q = df_all.groupby("groupe_nom").agg(
-        total=("site_EAN","count"),
-        zero=("site_consommation_annuelle", lambda x: (x==0).sum()),
-    ).reset_index()
-    grp_q["pct"] = (grp_q["zero"] / grp_q["total"] * 100).round(1)
-    grp_q = grp_q[grp_q["zero"] > 0].sort_values("pct", ascending=False).head(20)
-
-    fig = px.bar(
-        grp_q, x="pct", y="groupe_nom", orientation="h",
-        color_discrete_sequence=[GOLD],
-        text=grp_q.apply(lambda r: f"{r.pct}% ({r.zero:,.0f}/{r.total:,.0f})", axis=1),
-    )
-    fig.update_traces(textposition="outside", textfont_size=10)
-    fig.update_yaxes(categoryorder="total ascending")
-    chart_layout(fig, max(380, len(grp_q)*26))
-    fig.update_layout(xaxis_title="% consommation = 0", yaxis_title="")
-    st.plotly_chart(fig, use_container_width=True)
-
-    # ── Prosumers ──
-    section("Sites prosumers (injection > 0)")
-    pros = df_all[df_all["has_injection"]].copy()
-    pros_disp = pros[["site_EAN","site_nom","groupe_nom","injection_mwh","conso_mwh","site_type_releve"]].copy()
-    pros_disp.columns = ["EAN","Site","Groupe","Injection (MWh)","Conso (MWh)","Relevé"]
-    pros_disp["Injection (MWh)"] = pros_disp["Injection (MWh)"].round(1)
-    pros_disp["Conso (MWh)"] = pros_disp["Conso (MWh)"].round(1)
-    st.dataframe(pros_disp.sort_values("Injection (MWh)", ascending=False), use_container_width=True, hide_index=True)
-
-    # ── Anomalies table ──
-    section("Détail des anomalies")
-    st.dataframe(df_ano, use_container_width=True, hide_index=True, height=300)
