@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
+from pathlib import Path
 
 # ─────────────────────────────────────────────
 # CONFIG & PALETTE
@@ -138,13 +139,36 @@ st.markdown(f"""
 # ─────────────────────────────────────────────
 # DATA LOADING
 # ─────────────────────────────────────────────
-DATA_FILE = "MyAct_Final_Fuzzy.xlsx"
+DATA_FILE = Path(__file__).parent / "MyAct_Final_Fuzzy.xlsx"
 
 @st.cache_data
 def load_data():
+    import openpyxl
+    wb = openpyxl.load_workbook(DATA_FILE, read_only=True)
+    sheets = wb.sheetnames
+    wb.close()
+
     inv = pd.read_excel(DATA_FILE, sheet_name="Inventaire")
-    ano = pd.read_excel(DATA_FILE, sheet_name="Anomalies")
-    fuz = pd.read_excel(DATA_FILE, sheet_name="Rapport Fuzzy")
+
+    # Anomalies sheet
+    if "Anomalies" in sheets:
+        ano = pd.read_excel(DATA_FILE, sheet_name="Anomalies")
+    else:
+        ano = pd.DataFrame(columns=["Type", "EAN", "Détail"])
+
+    # Fuzzy report — handle both naming conventions
+    fuz_sheet = next((s for s in sheets if s.lower().startswith("rapport") or s.lower().startswith("harmoni")), None)
+    if fuz_sheet:
+        fuz = pd.read_excel(DATA_FILE, sheet_name=fuz_sheet)
+        # Normalize columns for both formats
+        if "Nb EAN Affectés" not in fuz.columns and "Nb enregistrements" in fuz.columns:
+            fuz = fuz.rename(columns={"Nb enregistrements": "Nb EAN Affectés"})
+        for col in ["Type", "Confiance", "Nb EAN Affectés"]:
+            if col not in fuz.columns:
+                fuz[col] = "N/A" if col != "Nb EAN Affectés" else 0
+    else:
+        fuz = pd.DataFrame(columns=["Type", "Confiance", "Nb EAN Affectés"])
+
     inv["conso_mwh"] = inv["site_consommation_annuelle"] / 1000
     inv["injection_mwh"] = inv["site_injection_annuelle"] / 1000
     inv["has_injection"] = inv["site_injection_annuelle"] > 0
@@ -624,7 +648,12 @@ elif page == "Qualité des données":
     c1.markdown(kpi_card("Anomalies", f"{nb_ano:,}", f"{nb_ano/total*100:.1f}% du portefeuille"), unsafe_allow_html=True)
     c2.markdown(kpi_card("Conso = 0", f"{nb_conso_zero:,}", f"{nb_conso_zero/total*100:.1f}%", "kpi-gold"), unsafe_allow_html=True)
     c3.markdown(kpi_card("Nom manquant", f"{nb_nom_null:,}", f"{nb_nom_null/total*100:.1f}%", "kpi-green"), unsafe_allow_html=True)
-    c4.markdown(kpi_card("Corrections fuzzy", f"{nb_fuz}", f"{df_fuz[df_fuz.Confiance=='high'].shape[0]} high · {df_fuz[df_fuz.Confiance=='medium'].shape[0]} medium", "kpi-navy"), unsafe_allow_html=True)
+    if nb_fuz > 0:
+        fuz_high = df_fuz[df_fuz.Confiance=='high'].shape[0]
+        fuz_med  = df_fuz[df_fuz.Confiance=='medium'].shape[0]
+        c4.markdown(kpi_card("Corrections fuzzy", f"{nb_fuz}", f"{fuz_high} high · {fuz_med} medium", "kpi-navy"), unsafe_allow_html=True)
+    else:
+        c4.markdown(kpi_card("Corrections fuzzy", "—", "Onglet absent du fichier", "kpi-navy"), unsafe_allow_html=True)
 
     st.markdown("")
     col1, col2 = st.columns(2)
@@ -645,19 +674,22 @@ elif page == "Qualité des données":
 
     with col2:
         section("Corrections fuzzy — confiance")
-        fuz_conf = df_fuz.groupby(["Type","Confiance"]).agg(
-            corrections=("Nb EAN Affectés","sum")
-        ).reset_index()
-        fig = px.bar(
-            fuz_conf, x="Type", y="corrections", color="Confiance",
-            barmode="group",
-            color_discrete_map={"high": GREEN, "medium": GOLD},
-            text="corrections",
-        )
-        fig.update_traces(texttemplate="%{text:,.0f}", textposition="outside")
-        chart_layout(fig, 250)
-        fig.update_layout(xaxis_title="", yaxis_title="EAN affectés")
-        st.plotly_chart(fig, use_container_width=True)
+        if len(df_fuz) > 0:
+            fuz_conf = df_fuz.groupby(["Type","Confiance"]).agg(
+                corrections=("Nb EAN Affectés","sum")
+            ).reset_index()
+            fig = px.bar(
+                fuz_conf, x="Type", y="corrections", color="Confiance",
+                barmode="group",
+                color_discrete_map={"high": GREEN, "medium": GOLD},
+                text="corrections",
+            )
+            fig.update_traces(texttemplate="%{text:,.0f}", textposition="outside")
+            chart_layout(fig, 250)
+            fig.update_layout(xaxis_title="", yaxis_title="EAN affectés")
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("Aucun rapport de corrections fuzzy dans ce fichier.")
 
     # ── Conso=0 par groupe ──
     section("Taux de conso = 0 par groupe")
