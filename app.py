@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
+import base64
 from pathlib import Path
 
 # ─────────────────────────────────────────────
@@ -17,6 +18,13 @@ WHITE   = "#FFFFFF"
 GREY_BG = "#F7F8FA"
 GREY_TX = "#6B7280"
 PALETTE = [TEAL, GOLD, GREEN, NAVY, "#E8786F", "#9B8EC5"]
+
+# Logo (base64-embedded for Streamlit Cloud compatibility)
+LOGO_PATH = Path(__file__).parent / "Logo_actenergy.png"
+if LOGO_PATH.exists():
+    LOGO_B64 = base64.b64encode(LOGO_PATH.read_bytes()).decode()
+else:
+    LOGO_B64 = ""
 
 st.set_page_config(
     page_title="Act Energy — Portfolio Dashboard",
@@ -55,6 +63,21 @@ st.markdown(f"""
         font-size: 0.8rem;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+    }}
+
+    /* ── Multiselect tags (green instead of red) ── */
+    span[data-baseweb="tag"] {{
+        background-color: {GREEN} !important;
+        color: {NAVY} !important;
+        border-radius: 6px !important;
+        font-weight: 500 !important;
+    }}
+    span[data-baseweb="tag"] span {{
+        color: {NAVY} !important;
+    }}
+    span[data-baseweb="tag"] svg {{
+        color: {NAVY} !important;
+        fill: {NAVY} !important;
     }}
 
     /* ── KPI cards ── */
@@ -231,14 +254,25 @@ df_all, df_ano, df_fuz = load_data()
 # SIDEBAR
 # ─────────────────────────────────────────────
 with st.sidebar:
-    st.markdown(f"""
-        <div style="text-align:center; padding: 1rem 0 1.5rem 0;">
-            <div style="font-size:1.5rem; font-weight:700; color:{TEAL};">⚡ Act Energy</div>
-            <div style="font-size:0.72rem; color:{GREY_TX}; letter-spacing:0.08em; margin-top:0.2rem;">
-                PORTFOLIO DASHBOARD
+    if LOGO_B64:
+        st.markdown(f"""
+            <div style="text-align:center; padding: 1.2rem 0.5rem 0.4rem 0.5rem;">
+                <img src="data:image/png;base64,{LOGO_B64}"
+                     style="max-width:180px; width:100%; height:auto; filter:brightness(0) invert(1);" />
+                <div style="font-size:0.68rem; color:{GREY_TX}; letter-spacing:0.10em; margin-top:0.5rem;">
+                    PORTFOLIO DASHBOARD
+                </div>
             </div>
-        </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+            <div style="text-align:center; padding: 1rem 0 1.5rem 0;">
+                <div style="font-size:1.5rem; font-weight:700; color:{TEAL};">Act Energy</div>
+                <div style="font-size:0.72rem; color:{GREY_TX}; letter-spacing:0.08em; margin-top:0.2rem;">
+                    PORTFOLIO DASHBOARD
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
 
     page = st.radio(
         "Navigation",
