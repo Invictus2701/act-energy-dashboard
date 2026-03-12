@@ -121,7 +121,7 @@ st.markdown(f"""
     }}
 
     /* ── Hide Streamlit defaults ── */
-    #MainMenu, footer, header {{visibility: hidden;}}
+    #MainMenu, footer {{visibility: hidden;}}
     .block-container {{
         padding-top: 2rem;
         padding-bottom: 2rem;
