@@ -20,11 +20,25 @@ GREY_TX = "#6B7280"
 PALETTE = [TEAL, GOLD, GREEN, NAVY, "#E8786F", "#9B8EC5"]
 
 # Logo (base64-embedded for Streamlit Cloud compatibility)
-LOGO_PATH = Path(__file__).parent / "Logo_actenergy.png"
+LOGO_PATH = Path(__file__).parent / "Logo_NB_actenergy_négatif.png"
+LOGO_B64 = ""
 if LOGO_PATH.exists():
-    LOGO_B64 = base64.b64encode(LOGO_PATH.read_bytes()).decode()
-else:
-    LOGO_B64 = ""
+    try:
+        from PIL import Image
+        import io
+        img = Image.open(LOGO_PATH).convert("RGBA")
+        pixels = img.load()
+        # Black background → transparent (white logo stays)
+        for y in range(img.height):
+            for x in range(img.width):
+                r, g, b, a = pixels[x, y]
+                if r < 40 and g < 40 and b < 40:
+                    pixels[x, y] = (0, 0, 0, 0)
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        LOGO_B64 = base64.b64encode(buf.getvalue()).decode()
+    except Exception:
+        LOGO_B64 = base64.b64encode(LOGO_PATH.read_bytes()).decode()
 
 st.set_page_config(
     page_title="Act Energy — Portfolio Dashboard",
@@ -78,6 +92,28 @@ st.markdown(f"""
     span[data-baseweb="tag"] svg {{
         color: {NAVY} !important;
         fill: {NAVY} !important;
+    }}
+
+    /* ── Checkbox green when checked ── */
+    [data-testid="stCheckbox"] svg {{
+        fill: {GREEN} !important;
+        color: {GREEN} !important;
+    }}
+    [data-testid="stCheckbox"] input:checked + div {{
+        background-color: {GREEN} !important;
+        border-color: {GREEN} !important;
+    }}
+    [data-testid="stCheckbox"] input:checked + div svg {{
+        stroke: {WHITE} !important;
+    }}
+
+    /* ── Radio button green when selected ── */
+    [role="radiogroup"] [data-testid="stMarkdownContainer"] {{
+        color: {WHITE} !important;
+    }}
+    div[data-baseweb="radio"] > div:first-child > div {{
+        background-color: {GREEN} !important;
+        border-color: {GREEN} !important;
     }}
 
     /* ── KPI cards ── */
@@ -147,49 +183,43 @@ st.markdown(f"""
     #MainMenu, footer {{visibility: hidden;}}
 
     /* ── Sidebar collapse/expand button ── */
+    [data-testid="collapsedControl"] button,
+    [data-testid="stSidebarCollapseButton"] button,
     [data-testid="collapsedControl"],
-    [data-testid="stSidebarCollapseButton"] button {{
-        background: {WHITE} !important;
-        border: 1px solid #E5E7EB !important;
-        border-radius: 8px !important;
-        width: 2rem !important;
-        height: 2rem !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
-        cursor: pointer !important;
-    }}
-    [data-testid="collapsedControl"]:hover,
-    [data-testid="stSidebarCollapseButton"] button:hover {{
-        background: {GREY_BG} !important;
-        border-color: {TEAL} !important;
-    }}
-    /* Force-hide Material icon text fallback */
-    [data-testid="collapsedControl"] span[data-icon],
-    [data-testid="stSidebarCollapseButton"] span[data-icon],
-    header span.material-symbols-outlined,
-    header span.material-symbols-rounded,
-    [data-testid="collapsedControl"] span:not(:has(> svg)),
-    [data-testid="stSidebarCollapseButton"] span:not(:has(> svg)) {{
-        font-size: 0 !important;
-        letter-spacing: -9999px !important;
-        color: transparent !important;
-        overflow: hidden !important;
-        max-width: 1.2rem !important;
-        max-height: 1.2rem !important;
-    }}
-    /* But keep SVG icons visible */
-    [data-testid="collapsedControl"] svg,
-    [data-testid="stSidebarCollapseButton"] svg {{
-        width: 1rem !important;
-        height: 1rem !important;
-        color: {NAVY} !important;
-    }}
-    /* Hide stale header decoration text */
-    header[data-testid="stHeader"] {{
+    [data-testid="stSidebarCollapseButton"] {{
         background: transparent !important;
         border: none !important;
+        box-shadow: none !important;
+        color: {TEAL} !important;
+    }}
+    [data-testid="collapsedControl"]:hover button,
+    [data-testid="stSidebarCollapseButton"] button:hover {{
+        color: {GREEN} !important;
+    }}
+    [data-testid="collapsedControl"] svg,
+    [data-testid="stSidebarCollapseButton"] svg {{
+        stroke: {TEAL} !important;
+        color: {TEAL} !important;
+        width: 1.2rem !important;
+        height: 1.2rem !important;
+    }}
+    [data-testid="collapsedControl"]:hover svg,
+    [data-testid="stSidebarCollapseButton"]:hover svg {{
+        stroke: {GREEN} !important;
+        color: {GREEN} !important;
+    }}
+    /* Hide Material icon text fallback ("keyboard_double_arrow") */
+    [data-testid="collapsedControl"] span,
+    [data-testid="stSidebarCollapseButton"] span {{
+        font-size: 0px !important;
+        line-height: 0 !important;
+        overflow: hidden !important;
+        display: block !important;
+        width: 1.2rem !important;
+        height: 1.2rem !important;
+    }}
+    header[data-testid="stHeader"] {{
+        background: transparent !important;
     }}
     .block-container {{
         padding-top: 2rem;
@@ -256,10 +286,10 @@ df_all, df_ano, df_fuz = load_data()
 with st.sidebar:
     if LOGO_B64:
         st.markdown(f"""
-            <div style="text-align:center; padding: 1.2rem 0.5rem 0.4rem 0.5rem;">
+            <div style="text-align:center; padding: 1.2rem 1rem 0.4rem 1rem;">
                 <img src="data:image/png;base64,{LOGO_B64}"
-                     style="max-width:180px; width:100%; height:auto; filter:brightness(0) invert(1);" />
-                <div style="font-size:0.68rem; color:{GREY_TX}; letter-spacing:0.10em; margin-top:0.5rem;">
+                     style="max-width:170px; width:100%; height:auto;" />
+                <div style="font-size:0.68rem; color:{GREY_TX}; letter-spacing:0.10em; margin-top:0.6rem;">
                     PORTFOLIO DASHBOARD
                 </div>
             </div>
