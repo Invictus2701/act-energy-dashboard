@@ -94,23 +94,28 @@ st.markdown(f"""
         fill: {NAVY} !important;
     }}
 
-    /* ── Checkbox green when checked ── */
-    [data-testid="stCheckbox"] svg {{
-        fill: {GREEN} !important;
-        color: {GREEN} !important;
+    /* ── Checkbox: green box only, not the label ── */
+    [data-testid="stCheckbox"] [data-testid="stWidgetLabel"] {{
+        background: transparent !important;
     }}
-    [data-testid="stCheckbox"] input:checked + div {{
+    /* Override Streamlit red accent globally */
+    :root {{
+        --primary-color: {GREEN} !important;
+    }}
+    /* Target the checkbox square via baseweb */
+    [data-baseweb="checkbox"] > div:first-child {{
+        border-color: {GREEN} !important;
+    }}
+    [data-baseweb="checkbox"] > div:first-child[aria-hidden="true"] {{
         background-color: {GREEN} !important;
         border-color: {GREEN} !important;
     }}
-    [data-testid="stCheckbox"] input:checked + div svg {{
-        stroke: {WHITE} !important;
+    /* Checkmark stroke */
+    [data-baseweb="checkbox"] svg {{
+        fill: {GREEN} !important;
     }}
 
-    /* ── Radio button green when selected ── */
-    [role="radiogroup"] [data-testid="stMarkdownContainer"] {{
-        color: {WHITE} !important;
-    }}
+    /* ── Radio button: green dot only ── */
     div[data-baseweb="radio"] > div:first-child > div {{
         background-color: {GREEN} !important;
         border-color: {GREEN} !important;
