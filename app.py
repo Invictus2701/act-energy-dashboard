@@ -187,88 +187,135 @@ st.markdown(f"""
     /* ── Hide Streamlit defaults ── */
     #MainMenu, footer {{visibility: hidden;}}
 
-    /* ── Sidebar collapse/expand button — nuclear reset ── */
-    /* Hide absolutely everything inside the buttons */
-    [data-testid="collapsedControl"],
-    [data-testid="collapsedControl"] *,
-    [data-testid="stSidebarCollapseButton"],
-    [data-testid="stSidebarCollapseButton"] * {{
-        font-size: 0px !important;
-        color: transparent !important;
-        letter-spacing: -9999px !important;
-        text-indent: -9999px !important;
-        overflow: hidden !important;
+    /* ══ Sidebar toggle — kill "keyboard_double" text everywhere ══ */
+    /* 1. Hide Material Symbols font fallback text globally */
+    @font-face {{
+        font-family: 'Material Symbols Rounded';
+        src: url('') format('woff2');
     }}
-    /* Style the button containers */
+    @font-face {{
+        font-family: 'Material Symbols Outlined';
+        src: url('') format('woff2');
+    }}
+
+    /* 2. Nuclear: any element in header with this font → invisible text */
+    header *,
+    [data-testid="stHeader"] *,
+    [data-testid="collapsedControl"] *,
+    [data-testid="stSidebarCollapseButton"] *,
+    [data-testid="stSidebarCollapsedControl"] * {{
+        font-family: 'DM Sans', sans-serif !important;
+    }}
+
+    /* 3. Hide ALL text inside any sidebar toggle button wrapper */
+    [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="stSidebarCollapsedControl"] {{
+        font-size: 0 !important;
+        color: transparent !important;
+    }}
+    [data-testid="collapsedControl"] *,
+    [data-testid="stSidebarCollapseButton"] *,
+    [data-testid="stSidebarCollapsedControl"] *,
+    header button *,
+    header button span {{
+        font-size: 0 !important;
+        color: transparent !important;
+        -webkit-text-fill-color: transparent !important;
+        width: 0 !important;
+        max-width: 0 !important;
+        overflow: hidden !important;
+        display: inline-block !important;
+    }}
+
+    /* 4. Style the actual buttons — expand (closed sidebar) */
     [data-testid="collapsedControl"] button,
-    [data-testid="stSidebarCollapseButton"] button {{
+    [data-testid="stSidebarCollapsedControl"] button,
+    header button {{
         background: {GREY_BG} !important;
         border: 1px solid #E0E2E8 !important;
         border-radius: 8px !important;
-        width: 2rem !important;
-        height: 2rem !important;
-        min-width: 2rem !important;
-        min-height: 2rem !important;
+        width: 2.2rem !important;
+        height: 2.2rem !important;
+        min-width: 2.2rem !important;
+        min-height: 2.2rem !important;
+        max-width: 2.2rem !important;
         box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
         position: relative !important;
         cursor: pointer !important;
         padding: 0 !important;
+        overflow: hidden !important;
     }}
     [data-testid="collapsedControl"] button:hover,
-    [data-testid="stSidebarCollapseButton"] button:hover {{
+    [data-testid="stSidebarCollapsedControl"] button:hover,
+    header button:hover {{
         background: {WHITE} !important;
         border-color: {TEAL} !important;
     }}
-    /* Inject arrow via ::after — expand button (sidebar closed): → */
-    [data-testid="collapsedControl"] button::after {{
-        content: "›" !important;
-        font-size: 1.4rem !important;
+    /* Arrow → for expand */
+    [data-testid="collapsedControl"] button::after,
+    [data-testid="stSidebarCollapsedControl"] button::after,
+    header button::after {{
+        content: "\\276F" !important;
+        font-size: 1rem !important;
+        font-family: 'DM Sans', sans-serif !important;
         color: {NAVY} !important;
-        text-indent: 0 !important;
-        letter-spacing: normal !important;
+        -webkit-text-fill-color: {NAVY} !important;
         position: absolute !important;
         inset: 0 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        line-height: 1 !important;
-        font-weight: 300 !important;
+        width: auto !important;
+        max-width: none !important;
+        overflow: visible !important;
     }}
-    [data-testid="collapsedControl"] button:hover::after {{
+    [data-testid="collapsedControl"] button:hover::after,
+    header button:hover::after {{
         color: {TEAL} !important;
+        -webkit-text-fill-color: {TEAL} !important;
     }}
-    /* Inject arrow via ::after — collapse button (sidebar open): ‹ */
-    [data-testid="stSidebarCollapseButton"] button::after {{
-        content: "‹" !important;
-        font-size: 1.4rem !important;
-        color: {WHITE} !important;
-        text-indent: 0 !important;
-        letter-spacing: normal !important;
-        position: absolute !important;
-        inset: 0 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        line-height: 1 !important;
-        font-weight: 300 !important;
-    }}
-    [data-testid="stSidebarCollapseButton"] button:hover::after {{
-        color: {GREEN} !important;
-    }}
-    /* Collapse button (inside sidebar) — transparent bg */
+
+    /* 5. Collapse button (inside sidebar, open state): ‹ */
     [data-testid="stSidebarCollapseButton"] button {{
         background: transparent !important;
         border: 1px solid rgba(255,255,255,0.15) !important;
+        border-radius: 8px !important;
+        width: 2.2rem !important;
+        height: 2.2rem !important;
+        min-width: 2.2rem !important;
+        max-width: 2.2rem !important;
         box-shadow: none !important;
+        position: relative !important;
+        cursor: pointer !important;
+        padding: 0 !important;
+        overflow: hidden !important;
     }}
     [data-testid="stSidebarCollapseButton"] button:hover {{
         background: rgba(255,255,255,0.08) !important;
         border-color: {TEAL} !important;
     }}
-    /* Transparent header bar */
+    [data-testid="stSidebarCollapseButton"] button::after {{
+        content: "\\276E" !important;
+        font-size: 1rem !important;
+        font-family: 'DM Sans', sans-serif !important;
+        color: {WHITE} !important;
+        -webkit-text-fill-color: {WHITE} !important;
+        position: absolute !important;
+        inset: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: auto !important;
+        max-width: none !important;
+        overflow: visible !important;
+    }}
+    [data-testid="stSidebarCollapseButton"] button:hover::after {{
+        color: {GREEN} !important;
+        -webkit-text-fill-color: {GREEN} !important;
+    }}
+
+    /* 6. Transparent header bar */
     header[data-testid="stHeader"] {{
         background: transparent !important;
     }}
